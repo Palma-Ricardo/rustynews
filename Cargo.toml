@@ -29,6 +29,7 @@ unicode-segmentation = "1"
 
 [dev-dependencies]
 reqwest = "0.11"
+claim = "0.5"
 
 [dependencies.sqlx]
 version = "0.5.7"
