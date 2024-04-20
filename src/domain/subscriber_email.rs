@@ -51,7 +51,7 @@ mod tests {
         fn arbitrary<G: quickcheck::Gen>(g: &mut G) -> Self {
             let email = SafeEmail().fake_with_rng(g);
             Self(email)
-        } 
+        }
     }
 
     #[quickcheck_macros::quickcheck]
