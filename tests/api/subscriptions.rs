@@ -34,7 +34,7 @@ async fn subscribe_returns_a_400_when_data_is_missing() {
     for (invalid_body, error_message) in test_cases {
         // Act
         let response = app.post_subscriptions(invalid_body.into()).await;
-        
+
         // Assert
         assert_eq!(
             400,
