@@ -7,3 +7,9 @@ host = "localhost"
 username = "postgres"
 password = "password"
 database_name = "newsletter"
+
+[email_client]
+base_url = "localhost"
+sender_email = "ricardo.palma.rjp@gmail.com"
+authorization_token = "e29f4529-a9a4-4b98-acf2-8ad54abc8696"
+timeout_milliseconds = 10000
