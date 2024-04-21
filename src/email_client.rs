@@ -39,7 +39,7 @@ impl EmailClient {
             html_body: html_content,
             text_body: text_content,
         };
-        let builder = self
+        let _builder = self
             .http_client
             .post(&url)
             .header(
@@ -144,6 +144,7 @@ mod tests {
             .await;
 
         // Assert
+        // Mock asserts on drop
     }
 
     #[tokio::test]
