@@ -1891,6 +1891,7 @@ name = "rustynews"
 version = "0.1.0"
 dependencies = [
  "actix-web",
+ "anyhow",
  "chrono",
  "claim",
  "config",
@@ -1906,6 +1907,7 @@ dependencies = [
  "serde 1.0.197",
  "serde_json",
  "sqlx",
+ "thiserror",
  "tokio",
  "tracing",
  "tracing-actix-web",
