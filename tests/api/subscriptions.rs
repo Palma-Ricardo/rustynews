@@ -99,7 +99,7 @@ async fn subscribe_returns_a_400_when_fields_are_present_but_invalid() {
 }
 
 #[tokio::test]
-async fn subcribe_sends_a_confirmatio_email_for_valid_data() {
+async fn subcribe_sends_a_confirmation_email_for_valid_data() {
     // Arrange
     let app = spawn_app().await;
     let body = "name=ricardo&email=ricardopalmarjp%40gmail.com";
