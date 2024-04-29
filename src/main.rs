@@ -3,7 +3,7 @@ use rustynews::startup::Application;
 use rustynews::telemetry::{get_subscriber, init_subscriber};
 
 #[tokio::main]
-async fn main() -> std::io::Result<()> {
+async fn main() -> anyhow::Result<()> {
     let subscriber = get_subscriber("rustynews".into(), "info".into(), std::io::stdout);
     init_subscriber(subscriber);
 
