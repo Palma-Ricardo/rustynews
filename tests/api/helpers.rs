@@ -45,16 +45,6 @@ impl TestApp {
             .expect("Failed to execute request.")
     }
 
-    pub async fn post_newsletters(&self, body: serde_json::Value) -> reqwest::Response {
-        self.api_client
-            .post(&format!("{}/newsletters", &self.address))
-            .basic_auth(&self.test_user.username, Some(&self.test_user.password))
-            .json(&body)
-            .send()
-            .await
-            .expect("Failed to execute request.")
-    }
-
     pub fn get_confirmation_links(&self, email_request: &wiremock::Request) -> ConfirmationLinks {
         let body: serde_json::Value = serde_json::from_slice(&email_request.body).unwrap();
         let get_link = |s: &str| {
@@ -73,6 +63,30 @@ impl TestApp {
         let html = get_link(&body["HtmlBody"].as_str().unwrap());
         let plain_text = get_link(&body["TextBody"].as_str().unwrap());
         ConfirmationLinks { html, plain_text }
+    }
+
+    pub async fn get_publish_newsletter(&self) -> reqwest::Response {
+        self.api_client
+            .get(&format!("{}/admin/newsletters", self.address))
+            .send()
+            .await
+            .expect("Failed to execute request.")
+    }
+
+    pub async fn get_publish_newsletter_html(&self) -> String {
+        self.get_publish_newsletter().await.text().await.unwrap()
+    }
+
+    pub async fn post_publish_newsletter<Body>(&self, body: &Body) -> reqwest::Response
+    where
+        Body: serde::Serialize,
+    {
+        self.api_client
+            .post(&format!("{}/admin/newsletters", &self.address))
+            .form(body)
+            .send()
+            .await
+            .expect("Failed to execute request.")
     }
 
     pub async fn post_login<Body>(&self, body: &Body) -> reqwest::Response
@@ -143,43 +157,6 @@ impl TestApp {
     }
 }
 
-pub struct TestUser {
-    pub user_id: Uuid,
-    pub username: String,
-    pub password: String,
-}
-
-impl TestUser {
-    pub fn generate() -> Self {
-        Self {
-            user_id: Uuid::new_v4(),
-            username: Uuid::new_v4().to_string(),
-            password: Uuid::new_v4().to_string(),
-        }
-    }
-
-    async fn store(&self, pool: &PgPool) {
-        let salt = SaltString::generate(&mut rand::thread_rng());
-        let password_hash = Argon2::new(
-            Algorithm::Argon2id,
-            Version::V0x13,
-            Params::new(15000, 2, 1, None).unwrap(),
-        )
-        .hash_password(self.password.as_bytes(), &salt)
-        .unwrap()
-        .to_string();
-        sqlx::query!(
-            "INSERT INTO users (user_id, username, password_hash) VALUES ($1, $2, $3)",
-            self.user_id,
-            self.username,
-            password_hash
-        )
-        .execute(pool)
-        .await
-        .expect("Failed to store test user.");
-    }
-}
-
 pub async fn spawn_app() -> TestApp {
     Lazy::force(&TRACING);
 
@@ -243,4 +220,49 @@ async fn configure_database(config: &DatabaseSettings) -> PgPool {
 pub fn assert_is_redirect_to(response: &reqwest::Response, location: &str) {
     assert_eq!(response.status().as_u16(), 303);
     assert_eq!(response.headers().get("Location").unwrap(), location);
+}
+
+pub struct TestUser {
+    user_id: Uuid,
+    pub username: String,
+    pub password: String,
+}
+
+impl TestUser {
+    pub fn generate() -> Self {
+        Self {
+            user_id: Uuid::new_v4(),
+            username: Uuid::new_v4().to_string(),
+            password: Uuid::new_v4().to_string(),
+        }
+    }
+
+    async fn store(&self, pool: &PgPool) {
+        let salt = SaltString::generate(&mut rand::thread_rng());
+        let password_hash = Argon2::new(
+            Algorithm::Argon2id,
+            Version::V0x13,
+            Params::new(15000, 2, 1, None).unwrap(),
+        )
+        .hash_password(self.password.as_bytes(), &salt)
+        .unwrap()
+        .to_string();
+        sqlx::query!(
+            "INSERT INTO users (user_id, username, password_hash) VALUES ($1, $2, $3)",
+            self.user_id,
+            self.username,
+            password_hash
+        )
+        .execute(pool)
+        .await
+        .expect("Failed to store test user.");
+    }
+
+    pub async fn login(&self, app: &TestApp) {
+        app.post_login(&serde_json::json!({
+            "username": &self.username,
+            "password": &self.password,
+        }))
+        .await;
+    }
 }
