@@ -2,6 +2,8 @@ use argon2::password_hash::SaltString;
 use argon2::{Algorithm, Argon2, Params, PasswordHasher, Version};
 use once_cell::sync::Lazy;
 use rustynews::configuration::{get_configuration, DatabaseSettings};
+use rustynews::email_client::EmailClient;
+use rustynews::issue_delivery_worker::{try_execute_task, ExecutionOutcome};
 use rustynews::startup::{get_connection_pool, Application};
 use rustynews::telemetry::{get_subscriber, init_subscriber};
 use sqlx::{Connection, Executor, PgConnection, PgPool};
@@ -32,6 +34,7 @@ pub struct TestApp {
     pub port: u16,
     pub test_user: TestUser,
     pub api_client: reqwest::Client,
+    pub email_client: EmailClient,
 }
 
 impl TestApp {
@@ -155,6 +158,18 @@ impl TestApp {
             .await
             .expect("Failed to execute request.")
     }
+
+    pub async fn dispatch_all_pending_emails(&self) {
+        loop {
+            if let ExecutionOutcome::EmtpyQueue =
+                try_execute_task(&self.db_pool, &self.email_client)
+                    .await
+                    .unwrap()
+            {
+                break;
+            }
+        }
+    }
 }
 
 pub async fn spawn_app() -> TestApp {
@@ -192,6 +207,7 @@ pub async fn spawn_app() -> TestApp {
         port: application_port,
         test_user: TestUser::generate(),
         api_client: client,
+        email_client: configuration.email_client.client(),
     };
     test_app.test_user.store(&test_app.db_pool).await;
     test_app
